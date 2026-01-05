@@ -1,0 +1,24 @@
+{
+    "name": "vat/vatcron",
+    "description": "A high-performance cron task plugin for Webman framework",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "vatic",
+            "email": "314620891@qq.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "workerman/webman-framework": "^1.4 || ^2.1",
+        "workerman/workerman": "^4.0 || ^5.1",
+        "symfony/process": "^7.4",
+        "ext-redis": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Vatcron\\": "src/"
+        }
+    }
+}
