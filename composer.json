@@ -14,7 +14,8 @@
         "workerman/webman-framework": "^1.4 || ^2.1",
         "workerman/workerman": "^4.0 || ^5.1",
         "symfony/process": "^7.4",
-        "ext-redis": "*"
+        "ext-redis": "*",
+        "webman/console": "^2.1"
     },
     "autoload": {
         "psr-4": {

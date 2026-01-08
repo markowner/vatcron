@@ -6,35 +6,21 @@ class Install
 {
     const WEBMAN_PLUGIN = true;
 
-    /**
-     * @var array
-     */
     protected static $pathRelation = [
-        'config/vatcron' => 'config/plugin/vatcron'
+        'config/vatcron' => 'config/plugin/vatcron',
+        'command' => 'app/command',
     ];
 
-    /**
-     * Install
-     * @return void
-     */
     public static function install()
     {
         static::installByRelation();
     }
 
-    /**
-     * Uninstall
-     * @return void
-     */
     public static function uninstall()
     {
         self::uninstallByRelation();
     }
 
-    /**
-     * installByRelation
-     * @return void
-     */
     public static function installByRelation()
     {
         foreach (static::$pathRelation as $source => $dest) {
@@ -44,16 +30,18 @@ class Install
                     mkdir($parent_dir, 0777, true);
                 }
             }
-            //symlink(__DIR__ . "/$source", base_path()."/$dest");
-            copy_dir(__DIR__ . "/$source", base_path()."/$dest");
-            echo "Create $dest";
+            $sourcePath = __DIR__ . "/$source";
+            $destPath = base_path()."/$dest";
+
+            if (is_dir($sourcePath)) {
+                copy_dir($sourcePath, $destPath);
+            } else {
+                copy($sourcePath, $destPath);
+            }
+            echo "Create $dest\n";
         }
     }
 
-    /**
-     * uninstallByRelation
-     * @return void
-     */
     public static function uninstallByRelation()
     {
         foreach (static::$pathRelation as $source => $dest) {
@@ -61,7 +49,7 @@ class Install
             if (!is_dir($path) && !is_file($path)) {
                 continue;
             }
-            echo "Remove $dest";
+            echo "Remove $dest\n";
             if (is_file($path) || is_link($path)) {
                 unlink($path);
                 continue;
@@ -69,5 +57,4 @@ class Install
             remove_dir($path);
         }
     }
-    
 }

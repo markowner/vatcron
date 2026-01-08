@@ -18,7 +18,7 @@ class TaskManager
 
     public function __construct()
     {
-        $this->config = config('plugin.vatcron.app', []);
+        $this->config = \config('plugin.vatcron.app');
     }
 
     /**

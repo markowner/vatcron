@@ -4,7 +4,7 @@
  */
 namespace Vatcron\Utils;
 
-class CommandExec {
+class ClassExec {
     /**
      * 执行命令
      * 支持格式：

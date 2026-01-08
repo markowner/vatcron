@@ -1,337 +1,197 @@
-# Vatcron - 高性能Webman定时任务插件
+# Vatcron - 高性能 Webman 定时任务插件
 
-Vatcron是一个基于Webman框架的高性能定时任务插件，支持秒级任务调度、异步协程执行、实时日志推送等功能。
+<p align="center">
+  <a href="https://github.com/walkor/webman">
+    <img src="https://www.workerman.net/img/logo.png" alt="webman logo" width="200">
+  </a>
+</p>
 
-## 特性
+Vatcron 是一款专为 [Webman](https://www.workerman.net/doc/webman/) 框架设计的高性能、企业级定时任务管理插件。它利用 Workerman 的多进程和协程能力，实现了秒级精度的任务调度、实时可视化的日志监控以及高可靠的分布式锁机制，非常适合处理高并发、高频次的后台任务。
 
-- ✅ **秒级任务调度** - 支持秒级精度的任务调度
-- ✅ **异步协程执行** - 基于Swoole协程的高性能异步执行
-- ✅ **分布式锁机制** - 防止任务重复执行
-- ✅ **实时日志推送** - WebSocket实时推送执行日志到前端
-- ✅ **优雅关闭** - 支持进程优雅关闭和任务清理
-- ✅ **任务重试** - 自动重试失败的任务
-- ✅ **多种任务类型** - 支持类方法、Shell命令、HTTP请求等
-- ✅ **Web管理界面** - 提供完整的API接口
-- ✅ **高性能** - 基于Workerman和Swoole的高并发处理能力
+## 🚀 核心特性
 
-## 安装
+- **⏱ 秒级精度调度**：支持标准的 Crontab 表达式（6位），精确到秒级执行任务。
+- **⚡️ 高性能架构**：
+  - **多进程隔离**：调度器（Scheduler）、执行器（Executor）、日志服务（LogServer）独立进程，互不干扰。
+  - **协程/异步支持**：底层支持 Swoole 协程，轻松应对高并发 I/O 密集型任务。
+- **📊 实时监控**：基于 WebSocket 的实时日志推送，任务执行情况尽在掌握。
+- **🔒 分布式锁**：内置 Redis 分布式锁，确保多实例部署时任务不重复执行。
+- **🛡 健壮稳定**：
+  - **平滑重启/停止**：完善的信号处理机制，确保任务执行中不丢失数据。
+  - **自动重试**：支持任务失败自动重试配置。
+- **🔌 丰富的任务类型**：
+  - **Command**：执行系统命令
+  - **Class**：调用 PHP 类方法
+  - **URL**：发送 HTTP 请求
+  - **Shell**：执行 Shell 脚本
 
-### 1. 通过Composer安装
+## 📋 环境要求
+
+- PHP >= 8.1
+- Webman >= 1.5
+- Workerman >= 4.1 或 >= 5.0
+- Redis 扩展 (必选)
+- Swoole 扩展 (推荐，用于协程模式)
+
+## 📦 安装
+
+### 1. Composer 安装
 
 ```bash
 composer require vat/vatcron
 ```
 
-### 2. 执行安装命令
+### 2. 导入数据库
+
+创建必要的数据库表（`vat_cron` 和 `vat_cron_log`）：
 
 ```bash
-php webman vatcron:install
+mysql -u root -p your_database < vatcron.sql
 ```
 
-### 3. 配置插件
+## 🛠 配置说明
 
-插件会自动创建配置文件 `config/plugin/vatcron/app.php`，你可以根据需要修改配置：
+插件配置文件位于 `config/plugin/vatcron/app.php`。
 
 ```php
 return [
-    'enable' => true,
-    'cron' => [
-        'scan_interval' => 1,        // 任务扫描间隔（秒）
-        'max_concurrent' => 10,      // 最大并发任务数
-        'timeout' => 300,            // 任务超时时间（秒）
-        'log_retention_days' => 30,  // 日志保留天数
-        'websocket' => [
-            'enable' => true,        // 启用WebSocket日志推送
-            'port' => 2346           // WebSocket服务端口
-        ]
-    ]
+    // 是否开启协程 (建议开启)
+    'enable_coroutine' => true,
+    
+    // 任务扫描间隔（秒）
+    'scan_interval' => 1,
+    
+    // 最大并发执行任务数
+    'max_concurrent' => 20,
+    
+    // Redis 队列配置
+    'cron_queue' => 'vatcron:queue',
+    
+    // 日志订阅频道
+    'log_subscribe' => 'vatcron:logs',
+    
+    // 数据库表名
+    'table_cron' => 'vat_cron',
+    'table_log'  => 'vat_cron_log',
 ];
 ```
 
-## 使用方法
+## 💻 使用指南
 
-### 1. 创建定时任务
+### 1. 服务管理
 
-#### 方式一：通过API创建
+Vatcron 提供了一套标准的命令行工具来管理服务：
 
 ```bash
-curl -X POST http://your-domain/cron/tasks/create \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "测试任务",
-    "description": "这是一个测试任务",
-    "cron_expression": "*/5 * * * *",
-    "command": "Vatcron\\Example\\ExampleTasks::cacheWarmup",
-    "enabled": true,
-    "timeout": 300
-  }'
+# 启动服务 (调试模式)
+php webman vatcron start
+
+# 启动服务 (后台守护模式)
+php webman vatcron start -d
+
+# 停止服务
+php webman vatcron stop
+
+# 重启服务
+php webman vatcron restart
+
+# 查看服务状态
+php webman vatcron status
 ```
 
-#### 方式二：直接插入数据库
+### 2. 添加任务
+
+#### 方式一：数据库直接添加
+
+直接在 `vat_cron` 表中插入数据即可生效（无需重启服务）：
+
+```sql
+INSERT INTO `vat_cron` 
+(`name`, `cron_expression`, `task_type`, `command`, `status`, `created_at`) 
+VALUES 
+('测试任务', '*/5 * * * * *', 1, 'echo "Hello Vatcron"', 1, NOW());
+```
+
+#### 方式二：代码添加
 
 ```php
 use support\Db;
 
 Db::table('vat_cron')->insert([
-    'name' => '数据清理任务',
-    'description' => '清理过期数据',
-    'cron_expression' => '0 2 * * *',
-    'command' => 'App\\Task\\CleanupTask::execute',
-    'enabled' => 1,
-    'timeout' => 600
+    'name' => '清理缓存',
+    'cron_expression' => '0 0 2 * * *', // 每天凌晨2点
+    'task_type' => 2, // 1:Command, 2:Class, 3:URL, 4:Shell
+    'command' => 'App\\Task\\ClearCache::run',
+    'status' => 1,
 ]);
 ```
 
-### 2. 支持的任务类型
+### 3. 开发自定义任务
 
-#### 类方法任务
-
-```php
-// 命令格式：ClassName::methodName 或 ClassName@methodName
-'command' => 'App\\Task\\MyTask::processData'
-```
-
-#### Shell命令任务
+只需创建一个普通的 PHP 类，Vatcron 会自动调用指定的方法。
 
 ```php
-// 直接执行Shell命令
-'command' => '/usr/bin/php /path/to/script.php',
-'params' => '{"arg1": "value1", "arg2": "value2"}'
-```
-
-#### HTTP请求任务
-
-```php
-// 执行HTTP请求
-'command' => 'https://api.example.com/endpoint'
-```
-
-#### 闭包函数任务
-
-```php
-// 执行PHP闭包
-'command' => 'function($params, $task, $logId) { 
-    // 你的代码 
-    return "执行完成"; 
-}'
-```
-
-### 3. 任务管理API
-
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/cron/tasks` | GET | 获取任务列表 |
-| `/cron/tasks/create` | POST | 创建任务 |
-| `/cron/tasks/:id` | GET | 获取任务详情 |
-| `/cron/tasks/:id/update` | POST | 更新任务 |
-| `/cron/tasks/:id/delete` | POST | 删除任务 |
-| `/cron/tasks/:id/execute` | POST | 立即执行任务 |
-| `/cron/tasks/:id/toggle` | POST | 启用/禁用任务 |
-| `/cron/tasks/:id/logs` | GET | 获取任务日志 |
-| `/cron/status` | GET | 获取系统状态 |
-
-### 4. 实时日志监控
-
-插件提供WebSocket服务用于实时监控任务执行情况：
-
-```javascript
-// 前端JavaScript代码示例
-const ws = new WebSocket('ws://your-domain:2346');
-
-ws.onopen = function() {
-    // 订阅日志频道
-    ws.send(JSON.stringify({
-        type: 'subscribe',
-        channel: 'vatcron:logs'
-    }));
-    
-    ws.send(JSON.stringify({
-        type: 'subscribe', 
-        channel: 'vatcron:execution_logs'
-    }));
-};
-
-ws.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-    
-    if (data.type === 'log') {
-        console.log('任务日志:', data.data);
-        // 更新UI显示
-    }
-};
-```
-
-## 高级功能
-
-### 1. 自定义任务类
-
-创建自定义任务类，实现复杂的业务逻辑：
-
-```php
-<?php
-
 namespace App\Task;
 
-use support\Db;
-use support\Redis;
-
-class MyCustomTask
+class MyTask
 {
-    protected $taskInfo;
-    protected $logId;
-
-    // 自动注入任务信息（可选）
-    public function setTaskInfo($taskInfo, $logId)
+    public function execute($params = [])
     {
-        $this->taskInfo = $taskInfo;
-        $this->logId = $logId;
-    }
-
-    public function processData($param1, $param2)
-    {
-        // 你的业务逻辑
-        
-        // 实时推送进度
-        $this->pushProgress("处理中...");
-        
-        // 执行耗时操作
-        $result = $this->heavyProcessing();
-        
-        return "处理完成: " . $result;
-    }
-    
-    protected function pushProgress($message)
-    {
-        if ($this->logId) {
-            Redis::publish('vatcron:execution_logs', json_encode([
-                'log_id' => $this->logId,
-                'level' => 'info',
-                'message' => $message,
-                'timestamp' => time(),
-                'type' => 'progress'
-            ]));
-        }
+        echo "正在执行自定义任务...\n";
+        // 业务逻辑
+        return "执行成功";
     }
 }
 ```
 
-### 2. 任务重试机制
+在任务配置中：
+- Type: `2 (Class)`
+- Command: `App\Task\MyTask::execute`
 
-任务执行失败时会自动重试：
+## 📡 实时日志监控
 
-```php
-// 在任务配置中设置重试参数
-'command' => 'App\\Task\\MyTask::process',
-'max_retries' => 3,      // 最大重试次数
-'retry_delay' => 60      // 重试延迟（秒）
-```
+Vatcron 内置了 WebSocket 服务（默认端口 12348），前端可以连接该端口实时获取任务执行日志。
 
-### 3. 分布式部署
+**WebSocket 地址**: `ws://127.0.0.1:12348`
 
-在多服务器环境下，插件会自动处理任务锁，避免重复执行：
-
-- 基于Redis的分布式锁
-- 数据库锁记录用于监控
-- 自动清理过期锁
-
-## 性能优化建议
-
-### 1. 合理设置扫描间隔
-
-```php
-'scan_interval' => 1  // 生产环境建议1-5秒
-```
-
-### 2. 控制并发任务数
-
-```php
-'max_concurrent' => 10  // 根据服务器配置调整
-```
-
-### 3. 设置合理的超时时间
-
-```php
-'timeout' => 300  // 根据任务类型设置
-```
-
-### 4. 定期清理日志
-
-```php
-'log_retention_days' => 30  // 保留30天日志
-```
-
-## 故障排除
-
-### 1. 任务不执行
-
-- 检查任务是否启用 (`enabled = 1`)
-- 检查Cron表达式是否正确
-- 查看系统日志是否有错误信息
-- 检查数据库连接是否正常
-
-### 2. 任务重复执行
-
-- 检查分布式锁机制是否正常工作
-- 确认没有多个调度器进程在运行
-- 检查服务器时间是否同步
-
-### 3. 内存泄漏
-
-- 检查任务代码是否有内存泄漏
-- 设置合理的超时时间
-- 定期重启Worker进程
-
-### 4. 性能问题
-
-- 减少任务扫描频率
-- 优化任务执行代码
-- 增加服务器资源
-
-## 开发指南
-
-### 1. 扩展任务类型
-
-你可以通过继承 `Vatcron\\Task\\TaskExecutor` 类来支持新的任务类型：
-
-```php
-class CustomExecutor extends TaskExecutor
+**订阅协议**:
+```json
 {
-    protected function executeCustomType($command, $params, $task, $logId)
-    {
-        // 实现自定义任务类型的执行逻辑
+    "type": "subscribe",
+    "channel": "vatcron:logs"
+}
+```
+
+**日志数据示例**:
+```json
+{
+    "type": "log",
+    "data": {
+        "task_id": 1,
+        "status": "success",
+        "output": "Hello Vatcron",
+        "duration": 0.05
     }
 }
 ```
 
-### 2. 添加新的监控指标
+## 🧩 架构图解
 
-修改 `TaskController::status` 方法添加自定义监控指标。
+```mermaid
+graph TD
+    DB[(MySQL Task Table)] -->|Scan| Scheduler[Cron Task Scheduler]
+    Scheduler -->|Push| Redis[(Redis Queue)]
+    Redis -->|Pop| Executor[Task Executor]
+    Executor -->|Run| Worker[Worker Process]
+    Executor -->|Log| RedisLog[Redis Log Channel]
+    RedisLog -->|Sub| LogServer[WebSocket Log Server]
+    LogServer -->|Push| Frontend[Web VUE Admin]
+```
 
-### 3. 自定义WebSocket协议
+## 📄 License
 
-继承 `LogWebSocketProcess` 类实现自定义的实时通信协议。
+MIT
 
-## 许可证
+---
 
-MIT License
-
-## 贡献
-
-欢迎提交Issue和Pull Request来改进这个项目。
-
-## 支持
-
-如果你在使用过程中遇到问题，可以：
-
-1. 查看项目文档和示例
-2. 提交GitHub Issue
-3. 联系开发团队
-
-## 版本历史
-
-- v1.0.0 (2024-01-01): 初始版本发布
-  - 基础定时任务功能
-  - 异步协程执行
-  - 实时日志推送
-  - Web管理API
-  - 分布式锁支持
+**Vatcron** - 让 Webman 定时任务管理变得简单而强大。

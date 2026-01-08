@@ -21,9 +21,14 @@ class TaskExec
 
     public function __construct()
     {
+        $this->loadConfig();
         $this->taskManager = new TaskManager();
     }
 
+    protected function loadConfig()
+    {
+        $this->config = \config('plugin.vatcron.app');
+    }
 
     public function setLogger($logger)
     {
@@ -39,8 +44,7 @@ class TaskExec
         $startTime = microtime(true);
         
         try {
-            $config = config('plugin.vatcron.app', []);
-             if($config['enable_coroutine']){
+             if(isset($this->config['enable_coroutine']) && $this->config['enable_coroutine']){
                 $actuator = new CoroutineExec();
             }else{
                 $actuator = new AsyncTaskExec();
@@ -104,14 +108,25 @@ class TaskExec
     public function processFinish($logId, $process)
     {
         $timerId = Timer::add(2, function () use ($logId, $process, &$timerId) {
-            if(!$process->isRunning()){
-                $exitCode = $process->getExitCode();
+            try {
+                if (!$process->isRunning()) {
+                    $exitCode = $process->getExitCode();
+                    $this->taskManager->logTaskEnd(
+                        $logId,
+                        $exitCode === 0 ? 'success' : 'error',
+                        $process->getOutput(),
+                    );
+                    // 关闭定时器
+                    Timer::del($timerId);
+                }
+            } catch (\Throwable $e) {
+                // 捕获异常，防止Timer无限报错
+                echo "Process status check failed: " . $e->getMessage() . "\n";
                 $this->taskManager->logTaskEnd(
-                    $logId,
-                    $exitCode === 0 ? 'success' : 'error',
-                    $process->getOutput(),
+                    $logId, 
+                    'error', 
+                    "Monitor failed: " . $e->getMessage()
                 );
-                // 关闭定时器
                 Timer::del($timerId);
             }
         });
@@ -133,7 +148,8 @@ class TaskExec
         
         try {
             // 通过Redis发布实时日志
-            Redis::publish(config('plugin.vatcron.app.log_subscribe'), \json_encode($logData, JSON_UNESCAPED_UNICODE));
+            $channel = $this->config['log_subscribe'] ?? 'vatcron:logs';
+            Redis::publish($channel, \json_encode($logData, JSON_UNESCAPED_UNICODE));
         } catch (\Exception $e) {
             // Redis连接失败时记录到文件
             echo "Vatcron Log Error: {$e->getMessage()}";

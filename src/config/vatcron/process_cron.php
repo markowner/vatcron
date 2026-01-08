@@ -9,7 +9,7 @@ return [
     // 定时任务调度器进程
     'vatcron_scheduler' => [
         'handler' => CronScheduler::class,
-        'listen'  => 'text://' . config('plugin.vatcron.app.listen_cron'),
+        'listen'  => 'text://0.0.0.0:12346',
         'count' => 1, // 单进程运行，避免重复调度
         'context' => [],
         'constructor' => [
@@ -18,7 +18,7 @@ return [
     ],
     'vatcron_exec' => [
         'handler' => CronExec::class,
-        'listen'  => 'text://' . config('plugin.vatcron.app.listen_cron_exec'),
+        'listen'  => 'text://0.0.0.0:12347',
         'count' => 1,
         'user' => '',
         'group' => '',
@@ -33,9 +33,11 @@ return [
     // 实时日志WebSocket服务进程
     'vatcron_websocket' => [
         'handler' => LogSocket::class,
-        'listen'  => 'websocket://' . config('plugin.vatcron.app.listen_cron_log'),
+        'listen'  => 'websocket://0.0.0.0:12348',
         'count' => 1,
         'eventLoop' => Workerman\Events\Swoole::class,
-        'constructor' => []
+        'constructor' => [
+            'logger' => Log::channel('default'),
+        ]
     ],
 ];

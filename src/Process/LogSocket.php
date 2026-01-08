@@ -17,18 +17,33 @@ class LogSocket
 
     protected $channels = [];
 
-    public function __construct()
+    protected $config = [];
+
+    protected $logger;
+
+    protected $running;
+
+    public function __construct($logger)
     {
+        $this->logger = $logger;
     }
 
     public function onWorkerStart(Worker $worker)
     {
+        $this->loadConfig();
+        $this->running = true;
         echo "Log WebSocket Server Started\n";
-    
+        
+        // 使用协程来处理Redis订阅，避免阻塞WebSocket进程
         Coroutine::create(function() {
             $this->subscribeRedisChannels();
         });
         
+    }
+
+    protected function loadConfig()
+    {
+        $this->config = \config('plugin.vatcron.app');
     }
 
     /**
@@ -115,6 +130,7 @@ class LogSocket
 
     public function onStop(Worker $worker)
     {
+        $this->running = false;
         // 关闭所有客户端连接
         foreach ($this->clients as $client) {
             try {
@@ -193,13 +209,34 @@ class LogSocket
     /**
      * 订阅Redis频道
      */
+    /**
+     * 订阅Redis频道
+     */
     protected function subscribeRedisChannels()
     {
         // 订阅任务日志频道
-        $logSubscribe = config('plugin.vatcron.app.log_subscribe');
-        Redis::subscribe([$logSubscribe], function($message, $channel) {
-            $this->channelSubscribersNotice($channel, $message);
-        });
+        $logSubscribe = $this->config['log_subscribe'] ?? 'vatcron:logs';
+        echo "Subscribing to Redis channel: {$logSubscribe}\n";
+        
+        try {
+            Redis::subscribe([$logSubscribe], function($message, $channel) {
+                // 如果已经停止，不再处理
+                if (!$this->running) {
+                    return;
+                }
+                $this->channelSubscribersNotice($channel, $message);
+            });
+        } catch (\Throwable $e) {
+            if ($this->running) {
+                echo "Redis subscription error: " . $e->getMessage() . "\n";
+                // 使用定时器延时重试，避免阻塞协程导致死锁或退出异常
+                \Workerman\Timer::add(5, function() {
+                    if ($this->running) {
+                        $this->subscribeRedisChannels();
+                    }
+                }, [], false); 
+            }
+        }
     }
 
     /**
@@ -207,8 +244,14 @@ class LogSocket
      */
     public function channelSubscribersNotice($channel, $message)
     {
+        $this->logger->info("vatcron执行日志", ['channel' => $channel, 'message' => $message]);
         $data = json_decode($message, true);
         if (!$data) {
+            return;
+        }
+
+        // 如果没有订阅者，直接返回
+        if (!isset($this->channels[$channel])) {
             return;
         }
         
