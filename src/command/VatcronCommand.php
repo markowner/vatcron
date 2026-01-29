@@ -36,19 +36,11 @@ class VatcronCommand extends Command
                 unset($argv[2]);
             }
         }
-     
-        // 加载配置
-        // $configFile = config_path() . '/plugin/vatcron/process_cron.php';
-        // if (!file_exists($configFile)) {
-        //     $output->writeln("<error>配置文件不存在: {$configFile}</error>");
-        //     return self::FAILURE;
-        // }
 
-        // $config = require $configFile;
         $config = config('plugin.vatcron.process_cron');
 
         // 设置 Workerman 全局配置
-        $runtimeDir = runtime_path() . '/vatcron';
+        $runtimeDir = runtime_path() . '/logs/vatcron';
         if (!is_dir($runtimeDir)) {
             mkdir($runtimeDir, 0755, true);
         }
