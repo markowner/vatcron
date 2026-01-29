@@ -7,7 +7,7 @@ class Install
     const WEBMAN_PLUGIN = true;
 
     protected static $pathRelation = [
-        'config/vatcron' => 'config/plugin/vatcron',
+        'config/vatcron' => 'config/plugin/vat/vatcron',
         'command' => 'app/command',
     ];
 
