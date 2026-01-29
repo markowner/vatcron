@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `vat_cron` (
   `max_retries` int(11) DEFAULT 3 COMMENT '最大重试次数',
   `retry_delay` int(11) DEFAULT 60 COMMENT '重试延迟（秒）',
   `timeout` int(11) DEFAULT 300 COMMENT '任务超时时间（秒）',
+  `lock_time` int(11) DEFAULT 300 COMMENT '任务锁时间（秒）',
   `last_run_time` datetime DEFAULT NULL COMMENT '上次执行时间',
   `next_run_time` datetime DEFAULT NULL COMMENT '下次执行时间',
   `status` tinyint(1) DEFAULT 0 COMMENT '状态',
