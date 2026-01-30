@@ -1,5 +1,5 @@
 -- 创建vat_cron表（任务表）
-CREATE TABLE IF NOT EXISTS `vat_cron` (
+CREATE TABLE IF NOT EXISTS `vat_crontab` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '任务ID',
   `name` varchar(100) NOT NULL COMMENT '任务名称',
   `description` text COMMENT '任务描述',
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS `vat_cron` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时任务表';
 
 -- 创建vat_cron_log表（任务执行日志表）
-CREATE TABLE IF NOT EXISTS `vat_cron_log` (
+CREATE TABLE IF NOT EXISTS `vat_crontab_log` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '日志ID',
   `cron_id` int(11) NOT NULL COMMENT '任务ID',
   `task_name` varchar(100) NOT NULL COMMENT '任务名称',

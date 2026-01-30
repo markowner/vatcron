@@ -7,9 +7,9 @@ return [
     // 任务扫描间隔（秒）
     'scan_interval' => 5,
     // 定时任务表名
-    'table_cron' => 'vat_cron',
+    'table_cron' => 'vat_crontab',
     // 定时任务日志表名
-    'table_log' => 'vat_cron_log',
+    'table_log' => 'vat_crontab_log',
     // 定时任务队列名称
     'cron_queue' => 'vatcron:cron_queue',
     // 定时任务日志队列名称
