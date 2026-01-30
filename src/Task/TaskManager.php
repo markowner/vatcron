@@ -130,6 +130,18 @@ class TaskManager
     }
 
     /**
+     * 更新成子任务PID
+     */
+    public function updatePid($logId, $pid)
+    {
+        return Db::table($this->config['table_log'])
+            ->where('id', $logId)
+            ->update([
+                'pid' => $pid
+            ]);
+    }
+
+    /**
      * 计算下次执行时间
      */
     protected function calculateNextRunTime($task)

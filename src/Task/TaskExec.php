@@ -101,6 +101,7 @@ class TaskExec
         $this->processFinish($logId, $process);
         $pid = $process->getPid();
         $this->pushExecutionLog($task['id'], $logId, "创建任务子进程ID: {$pid}");
+        $this->taskManager->updatePid($logId, $pid);
         echo "创建任务子进程ID: {$pid}\n";
     }
 
