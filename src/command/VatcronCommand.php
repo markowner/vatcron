@@ -37,7 +37,7 @@ class VatcronCommand extends Command
             }
         }
 
-        $config = config('plugin.vatcron.process_cron');
+        $config = config('plugin.vat.vatcron.process_cron');
 
         // 设置 Workerman 全局配置
         $runtimeDir = runtime_path() . '/logs/vatcron';
