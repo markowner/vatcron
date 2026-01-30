@@ -17,5 +17,5 @@ return [
     // 定时任务日志订阅频道
     'log_subscribe' => 'vatcron:logs',
     // 是否将执行日志写入文件
-    'log_write_file' => false,
+    'log_write_file' => false
 ];
