@@ -90,8 +90,7 @@ class TaskManager
             'task_name' => $task['name'],
             'status' => 'running',
             'start_time' => date('Y-m-d H:i:s'),
-            'pid' => getmypid(),
-            'retry_count' => Redis::get("vatcron:retry_count:{$task['id']}") ?: 0
+            'pid' => getmypid()
         ]);
 
         // 更新任务最后执行时间
@@ -162,6 +161,103 @@ class TaskManager
         return json_encode(['code' => 200,'msg' => '创建任务成功', 'data' => ['id' => $id]], JSON_UNESCAPED_UNICODE);
     }
 
+
+    /**
+     * 获取任务列表
+     */
+    public function getTaskList($page = 1, $pageSize = 20)
+    {
+        return Db::table($this->config['table_cron'])
+            ->order('id', 'desc')
+            ->paginate($pageSize, ['*'], 'page', $page);
+    }
+
+    /**
+     * 获取任务执行日志
+     */
+    public function getTaskLogs($data = [])
+    {
+        return Db::table($this->config['table_log'])
+            ->where($data['where']??[])
+            ->order($data['order'] ?? ['id' => 'desc'])
+            ->paginate($data['paginate'] ?? ['page' => $data['paginate']['page'] ?? 1, 'list_rows' => $data['paginate']['list_rows'] ?? 10]);
+    }
+    
+    /**
+     * 根据ID获取任务
+     */
+    public function getTaskById($cronId)
+    {
+        return Db::table($this->config['table_cron'])
+            ->where('id', $cronId)
+            ->find();
+    }
+    
+    /**
+     * 分页获取所有任务
+     */
+    public function getList($data = [])
+    {
+        return Db::table($this->config['table_cron'])
+            ->where($data['where'] ?? [])
+            ->order($data['order'] ?? ['id' => 'desc'])
+            ->paginate($data['paginate'] ?? ['page' => $data['paginate']['page'] ?? 1, 'list_rows' => $data['paginate']['list_rows'] ?? 10]);
+    }
+    
+    
+    /**
+     * 重新加载任务
+     */
+    public function reloadTask($taskId)
+    {
+        $task = $this->getTaskById($taskId);
+        if (!$task) {
+            throw new \Exception("Task not found: {$taskId}");
+        }
+        
+        // 重新计算下次执行时间
+        $nextRunTime = $this->calculateNextRunTime($task);
+        if (!$nextRunTime) {
+            throw new \Exception("Failed to calculate next run time for task: {$taskId}");
+        }
+        
+        // 更新任务
+        return Db::table($this->config['table_cron'])
+            ->where('id', $taskId)
+            ->update([
+                'next_run_time' => $nextRunTime
+            ]);
+    }
+    
+    /**
+     * 启动任务
+     */
+    public function startTask($taskId)
+    {
+        // 将任务状态设置为启用
+        return Db::table($this->config['table_cron'])
+            ->where('id', $taskId)
+            ->update([
+                'status' => 0
+            ]);
+    }
+    
+    /**
+     * 关闭任务
+     */
+    public function closeTask($taskId)
+    {
+        // 将任务状态设置为禁用
+        $rs = Db::table($this->config['table_cron'])
+            ->where('id', $taskId)
+            ->update([
+                'status' => 1
+            ]);
+        // 释放任务锁
+        $this->releaseLock($taskId);    
+        return $rs;
+    }
+
     /**
      * 更新任务
      */
@@ -180,224 +276,6 @@ class TaskManager
             ->where('id', $data['id'])
             ->update($data);
     }
-
-    /**
-     * 删除任务
-     */
-    public function deleteTask($data)
-    {
-        // 删除相关日志
-        try{
-            Db::table($this->config['table_log'])->where('cron_id', $data['id'])->delete();
-            Db::table($this->config['table_cron'])->where('id', $data['id'])->delete(); 
-            $this->releaseLock($data['id']);
-            return true;
-        }catch(\Exception $e){
-            $this->logger->error("删除任务失败：{$e->getMessage()}");
-        }
-        return false;
-    }
-
-    /**
-     * 获取任务列表
-     */
-    public function getTaskList($page = 1, $pageSize = 20)
-    {
-        return Db::table($this->config['table_cron'])
-            ->order('id', 'desc')
-            ->paginate($pageSize, ['*'], 'page', $page);
-    }
-
-    /**
-     * 获取任务执行日志
-     */
-    public function getTaskLogs($cronId, $page = 1, $pageSize = 20)
-    {
-        return Db::table($this->config['table_log'])
-            ->where('cron_id', $cronId)
-            ->order('id', 'desc')
-            ->paginate($pageSize, ['*'], 'page', $page);
-    }
-    
-    /**
-     * 根据ID获取任务
-     */
-    public function getTaskById($cronId)
-    {
-        return Db::table($this->config['table_cron'])
-            ->where('id', $cronId)
-            ->find();
-    }
-    
-    /**
-     * 获取所有任务
-     */
-    public function getAllTasks()
-    {
-        return Db::table($this->config['table_cron'])
-            ->order('id', 'desc')
-            ->select();
-    }
-    
-    /**
-     * 根据日志ID获取任务日志
-     */
-    public function getTaskLogById($logId)
-    {
-        return Db::table($this->config['table_log'])
-            ->where('id', $logId)
-            ->find();
-    }
-    
-    /**
-     * 重新加载任务
-     */
-    public function reloadTask($taskId)
-    {
-        $task = $this->getTaskById($taskId);
-        if (!$task) {
-            throw new \Exception("Task not found: {$taskId}");
-        }
-        
-        // 重新计算下次执行时间
-        $nextRunTime = $this->calculateNextRunTime($task);
-        
-        // 更新任务
-        Db::table($this->config['table_cron'])
-            ->where('id', $taskId)
-            ->update([
-                'next_run_time' => $nextRunTime,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
-        
-        return true;
-    }
-    
-    /**
-     * 启动任务
-     */
-    public function startTask($taskId)
-    {
-        // 将任务状态设置为启用
-        return Db::table($this->config['table_cron'])
-            ->where('id', $taskId)
-            ->update([
-                'enabled' => 1,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
-    }
-    
-    /**
-     * 关闭任务
-     */
-    public function closeTask($taskId)
-    {
-        // 将任务状态设置为禁用
-        return Db::table($this->config['table_cron'])
-            ->where('id', $taskId)
-            ->update([
-                'enabled' => 0,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
-    }
-    
-    /**
-     * 停止任务执行
-     */
-    public function stopTask($taskId)
-    {
-        // 设置任务停止标志
-        $stopKey = "vatcron:stop:{$taskId}";
-        Redis::setex($stopKey, 3600, time());
-        
-        // 释放任务锁
-        $this->releaseLock($taskId);
-        
-        // 终止相关子进程
-        $this->terminateTaskProcesses($taskId);
-        
-        return true;
-    }
-    
-    /**
-     * 终止任务相关的子进程
-     */
-    protected function terminateTaskProcesses($taskId)
-    {
-        // 获取任务相关的进程ID
-        $processIdsKey = "vatcron:process_ids:{$taskId}";
-        $processIds = Redis::lrange($processIdsKey, 0, -1);
-        
-        if (!empty($processIds)) {
-            foreach ($processIds as $pid) {
-                $pid = (int)$pid;
-                if ($pid > 0) {
-                    // 尝试终止子进程
-                    if (function_exists('posix_kill')) {
-                        @posix_kill($pid, SIGTERM);
-                        // 等待一段时间后检查进程是否仍在运行
-                        usleep(100000); // 100ms
-                        if (function_exists('posix_getpgid') && posix_getpgid($pid) !== false) {
-                            // 进程仍在运行，强制终止
-                            @posix_kill($pid, SIGKILL);
-                        }
-                    } elseif (DIRECTORY_SEPARATOR === '/' && function_exists('exec')) {
-                        // Linux环境下没有posix扩展时，使用exec命令终止进程
-                        @exec("kill -9 {$pid}");
-                    }
-                }
-            }
-            
-            // 清理进程ID列表
-            Redis::del($processIdsKey);
-        }
-        
-        return true;
-    }
-    
-    /**
-     * 记录任务的子进程ID
-     */
-    public function recordTaskProcess($taskId, $pid)
-    {
-        if ($pid > 0) {
-            $processIdsKey = "vatcron:process_ids:{$taskId}";
-            Redis::rpush($processIdsKey, $pid);
-            Redis::expire($processIdsKey, 3600);
-        }
-        return true;
-    }
-    
-    /**
-     * 移除任务的子进程ID
-     */
-    public function removeTaskProcess($taskId, $pid)
-    {
-        if ($pid > 0) {
-            $processIdsKey = "vatcron:process_ids:{$taskId}";
-            Redis::lrem($processIdsKey, 0, $pid);
-        }
-        return true;
-    }
-    
-    /**
-     * 检查任务是否需要停止
-     */
-    public function shouldStopTask($taskId)
-    {
-        $stopKey = "vatcron:stop:{$taskId}";
-        return Redis::exists($stopKey);
-    }
-    
-    /**
-     * 清除任务停止标志
-     */
-    public function clearStopFlag($taskId)
-    {
-        $stopKey = "vatcron:stop:{$taskId}";
-        Redis::del($stopKey);
-        return true;
-    }
     
     /**
      * 重启任务
@@ -405,10 +283,7 @@ class TaskManager
     public function restartTask($taskId)
     {
         // 先停止任务
-        $this->stopTask($taskId);
-        
-        // 清除停止标志
-        $this->clearStopFlag($taskId);
+        $this->closeTask($taskId);
         
         // 启动任务
         $this->startTask($taskId);
@@ -430,11 +305,10 @@ class TaskManager
         }
         
         // 设置下次执行时间为当前时间
-        Db::table('vat_cron')
+        Db::table($this->config['table_cron'])
             ->where('id', $taskId)
             ->update([
-                'next_run_time' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'next_run_time' => date('Y-m-d H:i:s')
             ]);
         
         return true;

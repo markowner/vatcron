@@ -244,7 +244,6 @@ class LogSocket
      */
     public function channelSubscribersNotice($channel, $message)
     {
-        $this->logger->info("vatcron执行日志", ['channel' => $channel, 'message' => $message]);
         $data = json_decode($message, true);
         if (!$data) {
             return;

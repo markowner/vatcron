@@ -107,27 +107,27 @@ class TaskExec
 
     public function processFinish($logId, $process)
     {
-        $timerId = Timer::add(2, function () use ($logId, $process, &$timerId) {
+        $timerId = Timer::add(1, function () use ($logId, $process, &$timerId) {
             try {
                 if (!$process->isRunning()) {
+                    // 关闭定时器
+                    Timer::del($timerId);
                     $exitCode = $process->getExitCode();
                     $this->taskManager->logTaskEnd(
                         $logId,
                         $exitCode === 0 ? 'success' : 'error',
                         $process->getOutput(),
                     );
-                    // 关闭定时器
-                    Timer::del($timerId);
                 }
             } catch (\Throwable $e) {
                 // 捕获异常，防止Timer无限报错
                 echo "Process status check failed: " . $e->getMessage() . "\n";
+                Timer::del($timerId);
                 $this->taskManager->logTaskEnd(
                     $logId, 
                     'error', 
                     "Monitor failed: " . $e->getMessage()
                 );
-                Timer::del($timerId);
             }
         });
     }
@@ -148,29 +148,18 @@ class TaskExec
         
         try {
             // 通过Redis发布实时日志
-            $channel = $this->config['log_subscribe'] ?? 'vatcron:logs';
-            Redis::publish($channel, \json_encode($logData, JSON_UNESCAPED_UNICODE));
+            if($this->config['log_write_file']){
+                $this->logger->log('vatcron执行日志', $logData);
+            }
+            $channel = $this->config['log_subscribe'];
+            if($channel){
+                Redis::publish($channel, \json_encode($logData, JSON_UNESCAPED_UNICODE));
+            }else{
+                $this->config['log_write_file'] && $this->logger->log('vatcron执行日志-无订阅频道，日志未发布');
+            }
         } catch (\Exception $e) {
             // Redis连接失败时记录到文件
             echo "Vatcron Log Error: {$e->getMessage()}";
         }
-    }
-
-    /**
-     * 记录性能日志
-     */
-    protected function logPerformance($logId, $operation, $startTime, $endTime = null)
-    {
-        if (!$endTime) {
-            $endTime = microtime(true);
-        }
-        
-        $duration = round(($endTime - $startTime) * 1000, 2); // 毫秒
-        
-        if ($duration > 1000) { // 超过1秒记录警告
-            $this->logger->warning($logId, "{$operation} 执行时间过长: {$duration}ms");
-        }
-        
-        $this->logger->debug($logId, "{$operation} 执行时间: {$duration}ms");
     }
 }

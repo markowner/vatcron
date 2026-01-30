@@ -73,7 +73,7 @@ class CronScheduler
         if (method_exists($this->taskManager, $method)) {
             try {
                 $result = call_user_func([$this->taskManager, $method], $args);
-                $connection->send($result);
+                $connection->send(json_encode(['code' => 200, 'msg' => 'Success', 'data' => $result]));
             } catch (\Exception $e) {
                 $connection->send(json_encode(['code' => 500, 'msg' => $e->getMessage(), 'data' => []]));
             }

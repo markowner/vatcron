@@ -55,24 +55,22 @@ mysql -u root -p your_database < vatcron.sql
 
 ```php
 return [
-    // 是否开启协程 (建议开启)
+    // 是否开启协程
     'enable_coroutine' => true,
-    
     // 任务扫描间隔（秒）
-    'scan_interval' => 1,
-    
-    // 最大并发执行任务数
-    'max_concurrent' => 20,
-    
-    // Redis 队列配置
-    'cron_queue' => 'vatcron:queue',
-    
-    // 日志订阅频道
-    'log_subscribe' => 'vatcron:logs',
-    
-    // 数据库表名
+    'scan_interval' => 5,
+    // 定时任务表名
     'table_cron' => 'vat_cron',
-    'table_log'  => 'vat_cron_log',
+    // 定时任务日志表名
+    'table_log' => 'vat_cron_log',
+    // 定时任务队列名称
+    'cron_queue' => 'vatcron:cron_queue',
+    // 定时任务日志队列名称
+    'lock_prefix' => 'vatcron:lock:',
+    // 定时任务日志订阅频道
+    'log_subscribe' => 'vatcron:logs',
+    // 是否将执行日志写入文件
+    'log_write_file' => false,
 ];
 ```
 
@@ -107,9 +105,9 @@ php webman vatcron status
 
 ```sql
 INSERT INTO `vat_cron` 
-(`name`, `cron_expression`, `task_type`, `command`, `status`, `created_at`) 
+(`name`, `cron_expression`, `task_type`, `command`, `status`) 
 VALUES 
-('测试任务', '*/5 * * * * *', 1, 'echo "Hello Vatcron"', 1, NOW());
+('测试任务', '*/5 * * * * *', 1, 'echo "Hello Vatcron"', 0);
 ```
 
 #### 方式二：代码添加
@@ -122,7 +120,7 @@ Db::table('vat_cron')->insert([
     'cron_expression' => '0 0 2 * * *', // 每天凌晨2点
     'task_type' => 2, // 1:Command, 2:Class, 3:URL, 4:Shell
     'command' => 'App\\Task\\ClearCache::run',
-    'status' => 1,
+    'status' => 0,
 ]);
 ```
 
