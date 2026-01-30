@@ -161,17 +161,6 @@ class TaskManager
         return json_encode(['code' => 200,'msg' => '创建任务成功', 'data' => ['id' => $id]], JSON_UNESCAPED_UNICODE);
     }
 
-
-    /**
-     * 获取任务列表
-     */
-    public function getTaskList($page = 1, $pageSize = 20)
-    {
-        return Db::table($this->config['table_cron'])
-            ->order('id', 'desc')
-            ->paginate($pageSize, ['*'], 'page', $page);
-    }
-
     /**
      * 获取任务执行日志
      */
@@ -183,16 +172,7 @@ class TaskManager
             ->paginate($data['paginate'] ?? ['page' => $data['paginate']['page'] ?? 1, 'list_rows' => $data['paginate']['list_rows'] ?? 10]);
     }
     
-    /**
-     * 根据ID获取任务
-     */
-    public function getTaskById($cronId)
-    {
-        return Db::table($this->config['table_cron'])
-            ->where('id', $cronId)
-            ->find();
-    }
-    
+
     /**
      * 分页获取所有任务
      */
@@ -208,22 +188,22 @@ class TaskManager
     /**
      * 重新加载任务
      */
-    public function reloadTask($taskId)
+    public function reloadTask($data)
     {
-        $task = $this->getTaskById($taskId);
+        $task = $this->getTaskById($data['id']);
         if (!$task) {
-            throw new \Exception("Task not found: {$taskId}");
+            throw new \Exception("Task not found: {$data['id']}");
         }
         
         // 重新计算下次执行时间
         $nextRunTime = $this->calculateNextRunTime($task);
         if (!$nextRunTime) {
-            throw new \Exception("Failed to calculate next run time for task: {$taskId}");
+            throw new \Exception("Failed to calculate next run time for task: {$data['id']}");
         }
         
         // 更新任务
         return Db::table($this->config['table_cron'])
-            ->where('id', $taskId)
+            ->where('id', $data['id'])
             ->update([
                 'next_run_time' => $nextRunTime
             ]);
@@ -232,11 +212,11 @@ class TaskManager
     /**
      * 启动任务
      */
-    public function startTask($taskId)
+    public function startTask($data)
     {
         // 将任务状态设置为启用
         return Db::table($this->config['table_cron'])
-            ->where('id', $taskId)
+            ->where('id', $data['id'])
             ->update([
                 'status' => 0
             ]);
@@ -245,16 +225,16 @@ class TaskManager
     /**
      * 关闭任务
      */
-    public function closeTask($taskId)
+    public function closeTask($data)
     {
         // 将任务状态设置为禁用
         $rs = Db::table($this->config['table_cron'])
-            ->where('id', $taskId)
+            ->where('id', $data['id'])
             ->update([
                 'status' => 1
             ]);
         // 释放任务锁
-        $this->releaseLock($taskId);    
+        $this->releaseLock($data['id']);    
         return $rs;
     }
 
@@ -280,16 +260,16 @@ class TaskManager
     /**
      * 重启任务
      */
-    public function restartTask($taskId)
+    public function restartTask($data)
     {
         // 先停止任务
-        $this->closeTask($taskId);
+        $this->closeTask($data);
         
         // 启动任务
-        $this->startTask($taskId);
+        $this->startTask($data);
         
         // 重新加载任务
-        $this->reloadTask($taskId);
+        $this->reloadTask($data);
         
         return true;
     }
@@ -297,16 +277,16 @@ class TaskManager
     /**
      * 立即执行任务
      */
-    public function executeImmediately($taskId)
+    public function executeImmediately($data)
     {
-        $task = $this->getTaskById($taskId);
+        $task = $this->getTaskById($data['id']);
         if (!$task) {
-            throw new \Exception("Task not found: {$taskId}");
+            throw new \Exception("Task not found: {$data['id']}");
         }
         
         // 设置下次执行时间为当前时间
         Db::table($this->config['table_cron'])
-            ->where('id', $taskId)
+            ->where('id', $data['id'])
             ->update([
                 'next_run_time' => date('Y-m-d H:i:s')
             ]);
