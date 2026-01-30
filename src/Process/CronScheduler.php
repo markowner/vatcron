@@ -30,7 +30,7 @@ class CronScheduler
     public function onWorkerStart(Worker $worker)
     {
         // 启动任务扫描定时器
-        $this->config = \config('plugin.vatcron.app');
+        $this->config = \config('plugin.vat.vatcron.app');
         $scanInterval = $this->config['scan_interval'] ?? 1;
         Timer::add($scanInterval, [$this, 'scanTasks']);
         echo "定时任务调度器进程 Started (PID: " . getmypid() . ")\n";

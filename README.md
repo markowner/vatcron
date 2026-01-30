@@ -51,7 +51,7 @@ mysql -u root -p your_database < vatcron.sql
 
 ## 🛠 配置说明
 
-插件配置文件位于 `config/plugin/vatcron/app.php`。
+插件配置文件位于 `config/plugin/vat/vatcron/app.php`。
 
 ```php
 return [

@@ -20,7 +20,7 @@ class Client
      */
     public function __construct($serverAddress = null)
     {
-        $serverAddress = $serverAddress ?? config('plugin.vatcron.app.listen');
+        $serverAddress = $serverAddress ?? config('plugin.vat.vatcron.process_cron.vatcron_scheduler.listen');
         $this->client = stream_socket_client('tcp://' . $serverAddress, $errno, $errstr, 30);
         if (!$this->client) {
             throw new \Exception("Failed to connect to server: {$errstr} ({$errno})");

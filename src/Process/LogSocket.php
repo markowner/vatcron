@@ -43,7 +43,7 @@ class LogSocket
 
     protected function loadConfig()
     {
-        $this->config = \config('plugin.vatcron.app');
+        $this->config = \config('plugin.vat.vatcron.app');
     }
 
     /**
