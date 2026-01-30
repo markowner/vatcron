@@ -43,7 +43,7 @@ composer require vat/vatcron
 
 ### 2. 导入数据库
 
-创建必要的数据库表（`vat_cron` 和 `vat_cron_log`）：
+创建必要的数据库表（`vat_crontab` 和 `vat_crontab_log`）：
 
 ```bash
 mysql -u root -p your_database < vatcron.sql
@@ -60,9 +60,9 @@ return [
     // 任务扫描间隔（秒）
     'scan_interval' => 5,
     // 定时任务表名
-    'table_cron' => 'vat_cron',
+    'table_cron' => 'vat_crontab',
     // 定时任务日志表名
-    'table_log' => 'vat_cron_log',
+    'table_log' => 'vat_crontab_log',
     // 定时任务队列名称
     'cron_queue' => 'vatcron:cron_queue',
     // 定时任务日志队列名称
@@ -104,7 +104,7 @@ php webman vatcron status
 直接在 `vat_cron` 表中插入数据即可生效（无需重启服务）：
 
 ```sql
-INSERT INTO `vat_cron` 
+INSERT INTO `vat_crontab` 
 (`name`, `cron_expression`, `task_type`, `command`, `status`) 
 VALUES 
 ('测试任务', '*/5 * * * * *', 1, 'echo "Hello Vatcron"', 0);
@@ -115,7 +115,7 @@ VALUES
 ```php
 use support\Db;
 
-Db::table('vat_cron')->insert([
+Db::table('vat_crontab')->insert([
     'name' => '清理缓存',
     'cron_expression' => '0 0 2 * * *', // 每天凌晨2点
     'task_type' => 2, // 1:Command, 2:Class, 3:URL, 4:Shell
