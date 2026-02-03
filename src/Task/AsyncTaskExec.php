@@ -94,11 +94,10 @@ class AsyncTaskExec extends TaskExec{
             $http = new \Workerman\Http\Client();
             $http->get($command, function($response) use ($logId) {
                 $this->pushExecutionLog($this->task['id'], $logId, "URL请求结果: {$response->getBody()}");
-                if($response->getStatusCode() == 200){
-                    $this->taskManager->logTaskEnd($logId, 'success', $response->getBody());
-                }else{
-                    $this->taskManager->logTaskEnd($logId, 'error', $response->getBody());
-                }
+                $this->taskManager->logTaskEnd($logId, 'success', $response->getBody());
+            }, function($err) use ($logId) {
+                $this->pushExecutionLog($this->task['id'], $logId, "URL请求失败: {$err}");
+                $this->taskManager->logTaskEnd($logId, 'error', $err);
             });
         });
     }
