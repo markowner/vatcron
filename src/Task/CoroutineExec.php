@@ -84,15 +84,16 @@ class CoroutineExec extends TaskExec{
      */
     public function url($command, $logId)
     {
-        Coroutine::create(function() use ($command, $logId) {
+         Coroutine::create(function() use ($command, $logId) {
             $http = new \Workerman\Http\Client();
-            $response = $http->get($command);
-            $this->pushExecutionLog($this->task['id'], $logId, "URL请求结果: {$response->body}");
-            if($response->statusCode == 200){
-                $this->taskManager->logTaskEnd($logId, 'success', $response->body);
-            }else{
-                $this->taskManager->logTaskEnd($logId, 'error', $response->body);
-            }
+            $http->get($command, function($response) use ($logId) {
+                $this->pushExecutionLog($this->task['id'], $logId, "URL请求结果: {$response->getBody()}");
+                if($response->getStatusCode() == 200){
+                    $this->taskManager->logTaskEnd($logId, 'success', $response->getBody());
+                }else{
+                    $this->taskManager->logTaskEnd($logId, 'error', $response->getBody());
+                }
+            });
         });
     }
     /**

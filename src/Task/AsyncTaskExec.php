@@ -51,10 +51,6 @@ class AsyncTaskExec extends TaskExec{
                 ], JSON_UNESCAPED_UNICODE);
                 $this->pushExecutionLog($this->task['id'], $logId, "Command命令执行失败: {$errorJson}");
                 $this->taskManager->logTaskEnd($logId, 'error', $errorJson);
-            } finally {
-                // 释放任务锁
-                
-                // 从运行中任务列表移除
             }
         });
     }
@@ -96,13 +92,14 @@ class AsyncTaskExec extends TaskExec{
     {
         \Workerman\Timer::add(0.001, function() use ($command, $logId) {
             $http = new \Workerman\Http\Client();
-            $response = $http->get($command);
-            $this->pushExecutionLog($this->task['id'], $logId, "URL请求结果: {$response->body}");
-            if($response->statusCode == 200){
-                $this->taskManager->logTaskEnd($logId, 'success', $response->body);
-            }else{
-                $this->taskManager->logTaskEnd($logId, 'error', $response->body);
-            }
+            $http->get($command, function($response) use ($logId) {
+                $this->pushExecutionLog($this->task['id'], $logId, "URL请求结果: {$response->getBody()}");
+                if($response->getStatusCode() == 200){
+                    $this->taskManager->logTaskEnd($logId, 'success', $response->getBody());
+                }else{
+                    $this->taskManager->logTaskEnd($logId, 'error', $response->getBody());
+                }
+            });
         });
     }
     /**
