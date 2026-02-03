@@ -90,7 +90,7 @@ class TaskManager
                 'last_run_time' => date('Y-m-d H:i:s'),
                 'next_run_time' => $this->calculateNextRunTime($task)
             ]);
-            
+
         if(!$this->acquireLock($task)){
             return false;
         }
@@ -288,6 +288,16 @@ class TaskManager
         return true;
     }
     
+    /**
+     * 根据ID获取任务
+     */
+    public function getTaskById($cronId)
+    {
+        return Db::table($this->config['table_cron'])
+            ->where('id', $cronId)
+            ->find();
+    }
+
     /**
      * 立即执行任务
      */
