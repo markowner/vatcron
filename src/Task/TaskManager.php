@@ -54,15 +54,14 @@ class TaskManager
         $lockKey = $this->config['lock_prefix'] . $task['id'];
         // 使用Redis分布式锁
         if($task['lock_time']){
-            if(Redis::set($lockKey, time(), 'EX', $task['lock_time'], 'NX')){
-                return true;
-            }else{
+            if(!Redis::set($lockKey, time(), 'EX', $task['lock_time'], 'NX')){
                 echo "任务 {$task['id']} 已被锁定，跳过执行\n";
                 Log::info("任务 {$task['id']} 已被锁定，跳过执行");
+                return false;
             }
         }
     
-        return false;
+        return true;
     }
 
     /**
@@ -84,7 +83,9 @@ class TaskManager
      */
     public function logTaskStart($task)
     {
-        $this->acquireLock($task);
+        if(!$this->acquireLock($task)){
+            return false;
+        }
         $logId = Db::table($this->config['table_log'])->insertGetId([
             'cron_id' => $task['id'],
             'task_name' => $task['name'],

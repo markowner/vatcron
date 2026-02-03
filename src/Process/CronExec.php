@@ -59,7 +59,9 @@ class CronExec
                     $this->logger->info("从定时任务队列获取任务: " ,$task);
                     // 开始任务
                     $logId = $this->taskManager->logTaskStart($task);
-                    $this->taskExecutor->execute($task, $logId);
+                    if($logId){
+                        $this->taskExecutor->execute($task, $logId);
+                    }
                 }
             } catch (\Exception $e) {
                 $this->logger->error("执行Redis队列任务失败: " . $e->getMessage());
