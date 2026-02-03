@@ -83,17 +83,6 @@ class TaskManager
      */
     public function logTaskStart($task)
     {
-        if(!$this->acquireLock($task)){
-            return false;
-        }
-        $logId = Db::table($this->config['table_log'])->insertGetId([
-            'cron_id' => $task['id'],
-            'task_name' => $task['name'],
-            'status' => 'running',
-            'start_time' => date('Y-m-d H:i:s'),
-            'pid' => getmypid()
-        ]);
-
         // 更新任务最后执行时间
         Db::table($this->config['table_cron'])
             ->where('id', $task['id'])
@@ -101,6 +90,18 @@ class TaskManager
                 'last_run_time' => date('Y-m-d H:i:s'),
                 'next_run_time' => $this->calculateNextRunTime($task)
             ]);
+            
+        if(!$this->acquireLock($task)){
+            return false;
+        }
+        
+        $logId = Db::table($this->config['table_log'])->insertGetId([
+            'cron_id' => $task['id'],
+            'task_name' => $task['name'],
+            'status' => 'running',
+            'start_time' => date('Y-m-d H:i:s'),
+            'pid' => getmypid()
+        ]);
 
         return $logId;
     }

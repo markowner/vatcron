@@ -97,7 +97,7 @@ class AsyncTaskExec extends TaskExec{
                 $this->taskManager->logTaskEnd($logId, 'success', $response->getBody());
             }, function($err) use ($logId) {
                 $this->pushExecutionLog($this->task['id'], $logId, "URL请求失败: {$err}");
-                $this->taskManager->logTaskEnd($logId, 'error', $err);
+                $this->taskManager->logTaskEnd($logId, 'error', null, $err);
             });
         });
     }
