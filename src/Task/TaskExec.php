@@ -111,7 +111,7 @@ class TaskExec
                     $exitCode = $process->getExitCode();
                     $this->taskManager->logTaskEnd(
                         $logId,
-                        $exitCode === 0 ? 'success' : 'error',
+                        $exitCode === 0 ? 'success' : 'failed',
                         $process->getOutput(),
                     );
                 }
@@ -121,7 +121,7 @@ class TaskExec
                 Timer::del($timerId);
                 $this->taskManager->logTaskEnd(
                     $logId, 
-                    'error', 
+                    'failed', 
                     "Monitor failed: " . $e->getMessage()
                 );
             }

@@ -49,7 +49,7 @@ class CoroutineExec extends TaskExec{
                 echo "Command命令执行失败: {$errorJson}\n";
                 $this->logger->error("Command命令执行失败: {$errorJson}");
                 $this->pushExecutionLog($this->task['id'], $logId, "Command命令执行失败: {$errorJson}");
-                $this->taskManager->logTaskEnd( $logId, 'error', $errorJson);
+                $this->taskManager->logTaskEnd( $logId, 'failed', $errorJson);
             }
         });
     }
@@ -71,7 +71,7 @@ class CoroutineExec extends TaskExec{
                     'line' => $e->getLine(),
                 ], JSON_UNESCAPED_UNICODE);
                 $this->pushExecutionLog($this->task['id'], $logId, "类方法执行失败: {$errorJson}");
-                $this->taskManager->logTaskEnd($logId, 'error', $errorJson);
+                $this->taskManager->logTaskEnd($logId, 'failed', $errorJson);
             }
         });
     }
@@ -91,7 +91,7 @@ class CoroutineExec extends TaskExec{
                 $this->taskManager->logTaskEnd($logId, 'success', $response->getBody());
             }, function($err) use ($logId) {
                 $this->pushExecutionLog($this->task['id'], $logId, "URL请求失败: {$err}");
-                $this->taskManager->logTaskEnd($logId, 'error', $err);
+                $this->taskManager->logTaskEnd($logId, 'failed', $err);
             });
         });
     }
@@ -110,7 +110,7 @@ class CoroutineExec extends TaskExec{
                     'line' => $e->getLine(),
                 ], JSON_UNESCAPED_UNICODE);
                 $this->pushExecutionLog($this->task['id'], $logId, "Shell命令执行失败: {$errorJson}");
-                $this->taskManager->logTaskEnd($logId, 'error', $errorJson);
+                $this->taskManager->logTaskEnd($logId, 'failed', $errorJson);
             }
         });
     }

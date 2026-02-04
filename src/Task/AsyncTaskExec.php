@@ -50,7 +50,7 @@ class AsyncTaskExec extends TaskExec{
                     'line' => $e->getLine(),
                 ], JSON_UNESCAPED_UNICODE);
                 $this->pushExecutionLog($this->task['id'], $logId, "Command命令执行失败: {$errorJson}");
-                $this->taskManager->logTaskEnd($logId, 'error',  $errorJson);
+                $this->taskManager->logTaskEnd($logId, 'failed',  $errorJson);
             }
         });
     }
@@ -74,7 +74,7 @@ class AsyncTaskExec extends TaskExec{
                     'line' => $e->getLine(),
                 ], JSON_UNESCAPED_UNICODE);
                 $this->pushExecutionLog($this->task['id'], $logId, "类方法执行失败: {$errorJson}");
-                $this->taskManager->logTaskEnd($logId, 'error', $errorJson);
+                $this->taskManager->logTaskEnd($logId, 'failed', $errorJson);
             } finally {
                 // 释放任务锁
                 
@@ -97,7 +97,7 @@ class AsyncTaskExec extends TaskExec{
                 $this->taskManager->logTaskEnd($logId, 'success', $response->getBody());
             }, function($err) use ($logId) {
                 $this->pushExecutionLog($this->task['id'], $logId, "URL请求失败: {$err}");
-                $this->taskManager->logTaskEnd($logId, 'error', $err);
+                $this->taskManager->logTaskEnd($logId, 'failed', $err);
             });
         });
     }
@@ -116,7 +116,7 @@ class AsyncTaskExec extends TaskExec{
                     'line' => $e->getLine(),
                 ], JSON_UNESCAPED_UNICODE);
                 $this->pushExecutionLog($this->task['id'], $logId, "Shell命令执行失败: {$errorJson}");
-                $this->taskManager->logTaskEnd($logId, 'error', $errorJson);
+                $this->taskManager->logTaskEnd($logId, 'failed', $errorJson);
             }
         });
     }
