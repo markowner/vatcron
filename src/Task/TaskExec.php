@@ -122,7 +122,6 @@ class TaskExec
                 $this->taskManager->logTaskEnd(
                     $logId, 
                     'error', 
-                    null,
                     "Monitor failed: " . $e->getMessage()
                 );
             }

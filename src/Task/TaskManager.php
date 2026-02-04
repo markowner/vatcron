@@ -101,7 +101,7 @@ class TaskManager
     /**
      * 记录任务结束
      */
-    public function logTaskEnd($logId, $status, $output = null, $error = null)
+    public function logTaskEnd($logId, $status, $output = null)
     {
         $cronLog = Db::table($this->config['table_log'])->where('id', $logId)->find();
         $this->releaseLock($cronLog['cron_id']);
@@ -114,10 +114,6 @@ class TaskManager
 
         if ($output) {
             $updateData['output'] = is_string($output) ? $output : json_encode($output, JSON_UNESCAPED_UNICODE);
-        }
-
-        if ($error) {
-            $updateData['error'] = $error;
         }
 
         Db::table($this->config['table_log'])->where('id', $logId)->update($updateData);
@@ -211,7 +207,8 @@ class TaskManager
         return Db::table($this->config['table_cron'])
             ->where('id', $data['id'])
             ->update([
-                'next_run_time' => $nextRunTime
+                'next_run_time' => $nextRunTime,
+                'status' => 0
             ]);
     }
     
