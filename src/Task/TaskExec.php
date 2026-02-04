@@ -146,16 +146,17 @@ class TaskExec
         try {
             // 通过Redis发布实时日志
             if($this->config['log_write_file']){
-                $this->logger->log('vatcron执行日志', $logData);
+                $this->logger->info('vatcron执行日志', $logData);
             }
             $channel = $this->config['log_subscribe'];
             if($channel){
                 Redis::publish($channel, \json_encode($logData, JSON_UNESCAPED_UNICODE));
             }else{
-                $this->config['log_write_file'] && $this->logger->log('vatcron执行日志-无订阅频道，日志未发布');
+                $this->config['log_write_file'] && $this->logger->info('vatcron执行日志-无订阅频道，日志未发布');
             }
         } catch (\Exception $e) {
             // Redis连接失败时记录到文件
+            $this->config['log_write_file'] && $this->logger->error('vatcron执行日志-发布实时日志失败', ['error' => $e->getMessage()]);
             echo "Vatcron Log Error: {$e->getMessage()}";
         }
     }
