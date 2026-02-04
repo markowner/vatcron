@@ -20,8 +20,8 @@ class CronExec
     public function __construct($logger)
     {
         $this->logger = $logger;
-        $this->taskManager = new TaskManager();
-        $this->taskExecutor = (new TaskExec())->setLogger($logger);
+        $this->taskManager = new TaskManager($logger);
+        $this->taskExecutor = new TaskExec($logger);
     }
 
     public function onWorkerStart(Worker $worker)

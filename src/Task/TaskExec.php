@@ -19,21 +19,16 @@ class TaskExec
     protected $logger;
 
 
-    public function __construct()
+    public function __construct($logger = null)
     {
+        $this->logger = $logger;
         $this->loadConfig();
-        $this->taskManager = new TaskManager();
+        $this->taskManager = new TaskManager($logger);
     }
 
     protected function loadConfig()
     {
         $this->config = \config('plugin.vat.vatcron.app');
-    }
-
-    public function setLogger($logger)
-    {
-        $this->logger = $logger;
-        return $this;
     }
 
     /**
@@ -45,9 +40,9 @@ class TaskExec
         
         try {
              if(isset($this->config['enable_coroutine']) && $this->config['enable_coroutine']){
-                $actuator = new CoroutineExec();
+                $actuator = new CoroutineExec($this->logger);
             }else{
-                $actuator = new AsyncTaskExec();
+                $actuator = new AsyncTaskExec($this->logger);
             }
             // 实时推送开始日志
             $this->pushExecutionLog($task['id'], $logId, "开始执行任务: {$task['name']}({$task['id']})");

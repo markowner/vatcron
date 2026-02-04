@@ -16,20 +16,12 @@ class TaskManager
     protected $config;
     protected $logger;
 
-    public function __construct()
-    {
-        $this->config = \config('plugin.vat.vatcron.app');
-    }
-
-    /**
-     * 设置日志记录器
-     */
-    public function setLogger($logger)
+    public function __construct($logger = null)
     {
         $this->logger = $logger;
+        $this->config = \config('plugin.vat.vatcron.app');
     }
     
-
     /**
      * 获取需要执行的任务
      */
