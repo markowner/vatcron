@@ -218,11 +218,7 @@ class TaskManager
     public function startTask($data)
     {
         // 将任务状态设置为启用
-        return Db::table($this->config['table_cron'])
-            ->where('id', $data['id'])
-            ->update([
-                'status' => 0
-            ]);
+        return $this->reloadTask($data);
     }
     
     /**
