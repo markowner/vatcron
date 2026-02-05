@@ -88,9 +88,9 @@ class TaskManager
         }
         
         $logId = Db::table($this->config['table_log'])->insertGetId([
-            'cron_id' => $task['id'],
+            'crontab_id' => $task['id'],
             'task_name' => $task['name'],
-            'status' => 'running',
+            'run_status' => 'running',
             'start_time' => date('Y-m-d H:i:s'),
             'pid' => getmypid()
         ]);
@@ -104,10 +104,10 @@ class TaskManager
     public function logTaskEnd($logId, $status, $output = null)
     {
         $cronLog = Db::table($this->config['table_log'])->where('id', $logId)->find();
-        $this->releaseLock($cronLog['cron_id']);
+        $this->releaseLock($cronLog['crontab_id']);
 
         $updateData = [
-            'status' => $status,
+            'run_status' => $status,
             'end_time' => date('Y-m-d H:i:s'),
             'duration' => Db::raw('TIMESTAMPDIFF(SECOND, start_time, NOW())')
         ];
