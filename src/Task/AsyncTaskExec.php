@@ -38,11 +38,11 @@ class AsyncTaskExec extends TaskExec{
      */
     public function command($command, $logId)
     {
-        \Workerman\Timer::add(0.001, function() use ($command, $logId) {
+        \Workerman\Timer::add(0.001, function() use ($command, $logId ) {
             try {
                 // 异步执行，不阻塞主进程
                 $this->createProcess($this->task, $logId);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // 处理命令执行异常
                 $errorJson = json_encode([
                     'message' => $e->getMessage(),
@@ -52,7 +52,7 @@ class AsyncTaskExec extends TaskExec{
                 $this->pushExecutionLog($this->task['id'], $logId, "Command命令执行失败: {$errorJson}");
                 $this->taskManager->logTaskEnd($logId, 'failed',  $errorJson);
             }
-        });
+        }, [], false);
     }
     /**
      * 协程执行类方法
@@ -80,7 +80,7 @@ class AsyncTaskExec extends TaskExec{
                 
                 // 从运行中任务列表移除
             }
-        });
+        }, [], false);
     }
 
     /**
@@ -99,7 +99,7 @@ class AsyncTaskExec extends TaskExec{
                 $this->pushExecutionLog($this->task['id'], $logId, "URL请求失败: {$err}");
                 $this->taskManager->logTaskEnd($logId, 'failed', $err);
             });
-        });
+        }, [], false);
     }
     /**
      * 执行Shell命令
@@ -109,7 +109,7 @@ class AsyncTaskExec extends TaskExec{
         \Workerman\Timer::add(0.001, function() use ($command, $logId) {
             try{
                 $this->createProcess($this->task, $logId);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $errorJson = json_encode([
                     'message' => $e->getMessage(),
                     'file' => $e->getFile(),
@@ -118,7 +118,7 @@ class AsyncTaskExec extends TaskExec{
                 $this->pushExecutionLog($this->task['id'], $logId, "Shell命令执行失败: {$errorJson}");
                 $this->taskManager->logTaskEnd($logId, 'failed', $errorJson);
             }
-        });
+        }, [], false);
     }
     
 }
